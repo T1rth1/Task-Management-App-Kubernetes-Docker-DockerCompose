@@ -1,0 +1,208 @@
+apiVersion: monitoring.coreos.com/v1
+# -> This Custom Resource Definition (CRD) is provided by
+#    kube-prometheus-stack / Prometheus Operator
+#
+# -> Kubernetes does NOT understand PrometheusRule by default
+# -> It becomes available after installing Prometheus Operator
+#
+# -> Prometheus Operator watches these resources and
+#    automatically converts them into Prometheus alert rules
+
+kind: PrometheusRule
+# -> Defines alerting and recording rules for Prometheus
+
+metadata:
+  name: backend-alerts
+  # -> Name of this PrometheusRule resource
+
+  namespace: default
+  # -> Must be in a namespace monitored by Prometheus
+  #
+  # -> Your Prometheus instance is installed in default namespace
+  # -> So placing the rule here allows Prometheus Operator
+  #    to discover it automatically
+
+  labels:
+    release: monitoring
+    # -> VERY IMPORTANT
+    #
+    # -> Must match the Helm release name used when
+    #    installing kube-prometheus-stack
+    #
+    # -> Example:
+    #    helm install monitoring prometheus-community/kube-prometheus-stack
+    #
+    # -> release = monitoring
+    #
+    # -> Prometheus Operator uses this label to select
+    #    which PrometheusRule resources belong to it
+    #
+    # -> If this label is missing or incorrect:
+    #    ❌ Rule is ignored
+    #    ❌ Alerts never appear in Prometheus
+
+spec:
+  # -> Contains all alert rule definitions
+
+  groups:
+    # -> Prometheus organizes rules into groups
+    #
+    # -> Each group is evaluated periodically
+    # -> Helps manage large numbers of rules efficiently
+
+    - name: backend.rules
+      # -> Logical group name
+
+      rules:
+        # -> List of alert rules
+
+
+        # TEST ALERT
+
+
+        - alert: TestAlwaysFiring
+          # -> Alert name
+
+          expr: vector(1)
+          # -> PromQL Expression
+          #
+          # -> vector(1) always returns value 1
+          # -> Meaning expression is always TRUE
+
+          for: 10s
+          # -> Condition must remain true for 10 seconds
+          # -> Then alert becomes FIRING
+
+          labels:
+            severity: warning
+            # -> Custom label attached to alert
+            # -> Used by Alertmanager for routing
+
+          annotations:
+            summary: "Test alert"
+            # -> Human-readable description
+            # -> Displayed in Prometheus/Grafana
+
+
+        # BACKEND DOWN ALERT
+
+
+        - alert: BackendDown
+
+          expr: up{job="backend"} == 0
+          # -> "up" is a built-in Prometheus metric
+          #
+          # -> up = 1 → Target is reachable
+          # -> up = 0 → Target is unreachable
+          #
+          # -> If backend metrics endpoint is down
+          #    Prometheus sets up=0
+          #
+          # -> This alert detects:
+          #    - Pod crash
+          #    - Service unavailable
+          #    - Metrics endpoint failure
+
+          for: 1m
+          # -> Must remain down for 1 minute
+          # -> Prevents false alarms
+
+          labels:
+            severity: critical
+
+          annotations:
+            summary: "Backend is down"
+            description: "Backend service is not reachable"
+
+
+        # HIGH ERROR RATE ALERT
+
+
+        - alert: HighErrorRate
+
+          expr: rate(http_requests_total{status=~"5.."}[2m]) > 1
+          # -> Calculates number of 5xx errors
+          #    occurring per second
+          #
+          # -> status=~"5.."
+          #    Matches:
+          #    500
+          #    501
+          #    502
+          #    503
+          #    etc.
+          #
+          # -> rate(...[2m])
+          #    Average increase over last 2 minutes
+          #
+          # -> If more than 1 error/sec:
+          #    Alert triggers
+
+          for: 2m
+
+          labels:
+            severity: warning
+
+          annotations:
+            summary: "High error rate"
+            description: "Too many 5xx errors"
+
+
+        # HIGH CPU ALERT
+
+
+        - alert: HighCPUUsage
+
+          expr: sum(rate(container_cpu_usage_seconds_total[2m])) by (pod) > 0.8
+          # -> Uses container metrics collected
+          #    from kubelet/cAdvisor
+          #
+          # -> rate()
+          #    Calculates CPU usage growth
+          #
+          # -> Grouped by pod
+          #
+          # -> If CPU usage exceeds threshold:
+          #    Alert fires
+          #
+          # -> Useful for detecting:
+          #    - Infinite loops
+          #    - Traffic spikes
+          #    - Resource bottlenecks
+
+          for: 2m
+
+          labels:
+            severity: warning
+
+          annotations:
+            summary: "High CPU usage"
+            description: "Pod CPU usage is high"
+
+
+        # POD RESTART ALERT
+
+
+        - alert: PodRestarting
+
+          expr: increase(kube_pod_container_status_restarts_total[5m]) > 2
+          # -> Tracks container restart count
+          #
+          # -> increase(...[5m])
+          #    Number of restarts in last 5 minutes
+          #
+          # -> If restarted more than 2 times:
+          #    Alert triggers
+          #
+          # -> Useful for detecting:
+          #    - CrashLoopBackOff
+          #    - OOMKilled
+          #    - Application crashes
+
+          for: 1m
+
+          labels:
+            severity: warning
+
+          annotations:
+            summary: "Pod restarting frequently"

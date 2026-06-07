@@ -1,5 +1,6 @@
 import React from 'react'
-import { Popover, Transition } from "@headlessui/react";
+import { Popover } from "@headlessui/react";
+import Transition from "./CustomTransition.jsx"
 import moment from "moment";
 import{ Fragment, useState } from "react";
 import { BiSolidMessageRounded } from "react-icons/bi";

@@ -1,0 +1,54 @@
+apiVersion: monitoring.coreos.com/v1  
+# -> This is a Custom Resource Definition (CRD) provided by Prometheus Operator
+# -> It allows Kubernetes to understand what a ServiceMonitor is
+# -> Not part of default K8s API
+
+kind: ServiceMonitor  
+# -> Defines a ServiceMonitor resource
+# -> Used by Prometheus Operator to discover services to scrape metrics from
+
+metadata:
+  name: backend-monitor  
+  # -> Unique name of this ServiceMonitor resource
+
+  namespace: task-app  
+  # -> Namespace where this ServiceMonitor exists
+  # -> IMPORTANT: It usually should be in same namespace OR accessible to Prometheus
+
+  labels:
+    release: monitoring  
+    # -> VERY IMPORTANT label
+    # -> This must match the Prometheus Helm release label
+    # -> Prometheus uses this label to discover ServiceMonitors
+    # -> If this label doesn't match → Prometheus will IGNORE this monitor
+
+spec:
+  selector:
+    matchLabels:
+      app: backend  
+      # -> This selects Kubernetes Services (NOT pods directly)
+      # -> Prometheus will find Services with label: app=backend
+      # -> Then it uses those Services to find pods behind them
+
+  endpoints:
+    - port: http  
+      # -> This must match the Service port NAME (not number)
+      # -> Example:
+      #    ports:
+      #      - name: http
+      #        port: 5000
+      # -> Prometheus uses this named port to scrape metrics
+
+      path: /metrics  
+      # -> HTTP endpoint exposed by your backend
+      # -> Your app must expose metrics here (e.g., using prom-client in Node.js)
+
+      interval: 15s  
+      # -> How frequently Prometheus scrapes metrics
+      # -> Every 15 seconds, it will hit:
+      #    http://<pod-ip>:<port>/metrics
+
+      # Optional (good to know):
+      # scheme: http/https
+      # scrapeTimeout: timeout duration
+      # relabelings: advanced label transformations

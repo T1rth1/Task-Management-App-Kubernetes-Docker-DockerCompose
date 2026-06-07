@@ -1,4 +1,5 @@
-import { Popover, Transition } from "@headlessui/react";
+import { Popover } from "@headlessui/react";
+import Transition from "./CustomTransition.jsx";
 import React, { Fragment } from "react";
 import { getInitials } from "../utils";
 

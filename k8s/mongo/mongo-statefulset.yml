@@ -1,0 +1,137 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+  namespace: task-app
+spec:
+  serviceName: "mongo"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:6
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+          resources:
+            requests:
+              memory: "256Mi"  # Minimum memory guaranteed
+              cpu: "250m"      # Minimum CPU guaranteed
+            limits:
+              memory: "512Mi"  # Max memory allowed
+              cpu: "500m"      # Max CPU allowed
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-data
+      spec:
+        accessModes: 
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+
+# below is the whole explainantion of the above code and for more info check the notes of the chat-app k8s...
+
+# apiVersion: apps/v1
+# -> API group for advanced workloads like Deployment, StatefulSet, DaemonSet
+# -> StatefulSet always lives under "apps/v1"
+
+# kind: StatefulSet
+# -> This is used for stateful applications (MongoDB, Kafka, MySQL, etc.)
+# -> Unlike Deployment, it gives stable pod identity + storage
+
+# metadata:
+# -> Basic identification info
+
+#   name: mongo
+#   -> Name of this StatefulSet
+
+#   namespace: task-app
+#   -> This StatefulSet runs inside "task-app" namespace
+
+# spec:
+# -> Desired state definition
+
+#   serviceName: "mongo"
+#   -> VERY IMPORTANT
+#   -> This links StatefulSet to a Headless Service named "mongo"
+#   -> Used for stable DNS like:
+#      mongo-0.mongo.task-app.svc.cluster.local
+
+#   replicas: 1
+#   -> Number of MongoDB pods to run
+#   -> Right now 1 pod (no replication set yet)
+
+#   selector:
+#     matchLabels:
+#       app: mongo
+#   -> This tells StatefulSet:
+#      "manage pods with label app=mongo"
+#   -> Must match template labels below or StatefulSet will fail
+
+#   template:
+#     metadata:
+#       labels:
+#         app: mongo
+#     -> This is the Pod template
+#     -> Every pod created will have label app=mongo
+#     -> This MUST match selector above
+
+#     spec:
+#       containers:
+#         - name: mongo
+#           -> Container name inside pod
+
+#           image: mongo:6
+#           -> MongoDB version 6 official image
+
+#           ports:
+#             - containerPort: 27017
+#           -> MongoDB default port exposed inside container
+
+#           volumeMounts:
+#             - name: mongo-data
+#               mountPath: /data/db
+#           -> Attaches persistent storage to MongoDB data directory
+#           -> /data/db is where Mongo stores all data
+
+#           resources:
+#             requests:
+#               memory: "256Mi"
+#               cpu: "250m"
+#             -> MINIMUM guaranteed resources for scheduling
+#             -> Kubernetes will NOT schedule pod if node cannot provide this
+
+#             limits:
+#               memory: "512Mi"
+#               cpu: "500m"
+#             -> MAXIMUM allowed resources
+#             -> If Mongo exceeds this → CPU throttled / pod may get OOMKilled
+
+#   volumeClaimTemplates:
+#     -> THIS is the StatefulSet magic
+#     -> Each pod gets its own persistent volume automatically
+
+#     - metadata:
+#         name: mongo-data
+#       -> PVC name used in volumeMounts above
+
+#       spec:
+#         accessModes:
+#           - ReadWriteOnce
+#         -> Only ONE node can mount this volume at a time
+#         -> Perfect for single Mongo pod
+
+#         resources:
+#           requests:
+#             storage: 1Gi
+#         -> Each pod gets 1Gi persistent disk storage

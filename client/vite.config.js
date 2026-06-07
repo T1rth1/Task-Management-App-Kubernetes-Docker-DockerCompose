@@ -1,13 +1,20 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    dedupe: ['react', 'react-dom', 'react-router-dom', 'react-redux'],
+    alias: {
+      react: path.resolve('./node_modules/react'),
+      'react-dom': path.resolve('./node_modules/react-dom'),
+    }
+  },
   build: {
-    chunkSizeWarningLimit: 1000, // Increase the limit to 1000 kB
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
-      external: ['rechart','recharts','bcryptjs','mongoose']
+      external: ['bcryptjs', 'mongoose'] 
     }
   },
 })

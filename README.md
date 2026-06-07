@@ -1,10 +1,10 @@
-# 🌐 [Cloud-Based Task Manager](https://tassklyy.netlify.app)
+# 🌐 Task Management App — Kubernetes, Docker & Docker Compose
 
-[![GitHub stars](https://img.shields.io/github/stars/T1rth1/Cloud-Based-Task-Management-App)](https://github.com/T1rth1/Cloud-Based-Task-Management-App/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/T1rth1/Cloud-Based-Task-Management-App)](https://github.com/T1rth1/Cloud-Based-Task-Management-App/network)
-[![GitHub issues](https://img.shields.io/github/issues/T1rth1/Cloud-Based-Task-Management-App)](https://github.com/T1rth1/Cloud-Based-Task-Management-App/issues)
+[![GitHub stars](https://img.shields.io/github/stars/T1rth1/Task-Management-App-Kubernetes-Docker-DockerCompose)](https://github.com/T1rth1/Task-Management-App-Kubernetes-Docker-DockerCompose/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/T1rth1/Task-Management-App-Kubernetes-Docker-DockerCompose)](https://github.com/T1rth1/Task-Management-App-Kubernetes-Docker-DockerCompose/network)
+[![GitHub issues](https://img.shields.io/github/issues/T1rth1/Task-Management-App-Kubernetes-Docker-DockerCompose)](https://github.com/T1rth1/Task-Management-App-Kubernetes-Docker-DockerCompose/issues)
 
-The **Cloud-Based Task Manager** is an innovative platform designed to enhance team efficiency and organization. Leveraging the MERN stack and modern frontend technologies, this solution provides a seamless experience for administrators and users, fostering collaboration and productivity.
+A full-stack **MERN Task Management App** containerized with **Docker**, orchestrated via **Docker Compose**, and deployed on **Kubernetes**. This project demonstrates production-grade container workflows including multi-stage builds, Nginx reverse proxy, health checks, Horizontal Pod Autoscaling, and Prometheus monitoring.
 
 ## 🚀 Features
 
@@ -19,25 +19,62 @@ The **Cloud-Based Task Manager** is an innovative platform designed to enhance t
 - 🔍 **Task Access Control**: Users can view tasks but cannot access detailed information or interact with tasks unless they are assigned to that specific task; non-assigned users will see the task overview but not the detailed task page.
 - 🔎 **Dynamic Task Search**: Search for tasks by name in a case-insensitive manner, allowing users to quickly find tasks using a dynamic search bar.
 
-## 📥 Installation
+## � Project Structure
+
+```
+Cloud-Based-Task-Management-App/
+├── client/                  # React frontend
+│   ├── Dockerfile           # Multi-stage build (build + Nginx)
+│   ├── nginx.conf           # Nginx config with /api proxy
+│   ├── src/
+│   └── package.json
+├── server/                  # Express backend
+│   ├── Dockerfile           # Node.js production image
+│   ├── index.js
+│   └── package.json
+├── k8s/                     # Kubernetes manifests
+│   ├── namespace.yml
+│   ├── ingress.yml
+│   ├── backend/
+│   ├── frontend/
+│   └── mongo/
+├── docker-compose.yml       # Local orchestration
+└── README.md
+```
+
+## �📥 Installation
+
+### Prerequisites
+- Node.js 18+
+- Docker & Docker Compose (for containerized setup)
+- kubectl & a Kubernetes cluster (for K8s deployment)
+
+### Local Development (without Docker)
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/T1rth1/Cloud-Based-Task-Management-App.git
+    git clone https://github.com/T1rth1/Task-Management-App-Kubernetes-Docker-DockerCompose.git
+    cd Task-Management-App-Kubernetes-Docker-DockerCompose
     ```
-2. Navigate to the project directory:
+2. Install dependencies:
     ```bash
-    cd Cloud-Based-Task-Management-App
+    cd client && npm install
+    cd ../server && npm install
     ```
-3. Install the dependencies for the frontend and backend:
-    ```bash
-    cd client
-    npm install
-    cd ../server
-    npm install
-    ```
+3. Configure environment variables:
+    - `server/.env` — MongoDB URI, JWT secret, port
+    - `client/.env` — Firebase API key, backend URL
 
 ## 🛠️ Usage
+
+### Option 1: Docker Compose (Recommended for local)
+
+```bash
+docker-compose up --build
+```
+App available at `http://localhost:3000`
+
+### Option 2: Run manually
 
 1. Start the backend server:
     ```bash
@@ -47,15 +84,102 @@ The **Cloud-Based Task Manager** is an innovative platform designed to enhance t
 2. Start the frontend development server:
     ```bash
     cd client
-    npm start
+    npm run dev
     ```
 
 ## 🧰 Technologies Used
 
-- **Frontend**: React, Tailwind CSS, Redux
-- **Backend**: Node.js, Express.js, MongoDB
-- **Authentication**: JWT
+- **Frontend**: React 18, Tailwind CSS, Redux Toolkit, Vite
+- **Backend**: Node.js, Express.js, MongoDB, Mongoose
+- **Authentication**: JWT (JSON Web Tokens)
 - **File Storage**: Firebase Storage
+- **Containerization**: Docker, Docker Compose
+- **Orchestration**: Kubernetes (Deployments, StatefulSets, Services, Ingress, HPA)
+- **Reverse Proxy**: Nginx
+- **Monitoring**: Prometheus (prom-client), ServiceMonitor, AlertManager rules
+
+## 🏗️ Architecture
+
+```
+┌─────────────┐       ┌──────────────┐       ┌───────────┐
+│   Browser   │──────▶│  Frontend    │──────▶│  Backend  │──────▶│  MongoDB  │
+│             │ :3000 │  (Nginx)     │ /api  │  (Express)│       │           │
+└─────────────┘       └──────────────┘       └───────────┘       └───────────┘
+```
+
+- **Frontend** serves the React SPA and proxies `/api` requests to the backend via Nginx
+- **Backend** handles REST API, auth, and business logic
+- **MongoDB** stores all application data (persistent volume)
+
+## 🐳 Docker Compose (Local Development)
+
+Run the entire stack locally with a single command:
+
+```bash
+docker-compose up --build
+```
+
+This starts:
+| Service | Description | Port |
+|---------|-------------|------|
+| `frontend` | React app served via Nginx | `localhost:3000` |
+| `backend` | Express API server | Internal only |
+| `mongodb` | MongoDB 7 with health checks | Internal only |
+
+The backend is not directly exposed — all API traffic goes through Nginx reverse proxy for security.
+
+To stop:
+```bash
+docker-compose down
+```
+
+To stop and remove volumes:
+```bash
+docker-compose down -v
+```
+
+## ☸️ Kubernetes Deployment
+
+The `k8s/` directory contains production-ready manifests:
+
+```
+k8s/
+├── namespace.yml
+├── ingress.yml
+├── backend/
+│   ├── backend-configmap.yml
+│   ├── backend-secret.yml
+│   ├── backend-deployment.yml
+│   ├── backend-service.yml
+│   ├── backend-hpa.yml
+│   ├── backend-monitor.yml
+│   └── backend-alerts.yml
+├── frontend/
+│   ├── frontend-deployment.yml
+│   ├── frontend-service.yml
+│   └── frontend-hpa.yml
+└── mongo/
+    ├── mongo-statefulset.yml
+    └── mongo-headless-service.yml
+```
+
+### Deploy to Kubernetes
+
+```bash
+kubectl apply -f k8s/namespace.yml
+kubectl apply -f k8s/mongo/
+kubectl apply -f k8s/backend/
+kubectl apply -f k8s/frontend/
+kubectl apply -f k8s/ingress.yml
+```
+
+### Key K8s Features
+- **StatefulSet** for MongoDB with persistent storage
+- **Headless Service** for stable MongoDB DNS
+- **HPA** (Horizontal Pod Autoscaler) for frontend and backend
+- **Ingress** for external traffic routing
+- **ConfigMap & Secrets** for environment configuration
+- **ServiceMonitor & Alerts** for Prometheus-based observability
 
 ## 📸 Screenshots
 
@@ -209,4 +333,4 @@ For any inquiries, please contact [tirthpatel4822@gmail.com](mailto:tirthpatel48
 
 ## 🔗 Project Link
 
-[[GitHub Repository](https://github.com/T1rth1/Cloud-Based-Task-Management-App)](https://melodious-heliotrope-af4380.netlify.app/log-in)
+[GitHub Repository](https://github.com/T1rth1/Task-Management-App-Kubernetes-Docker-DockerCompose)

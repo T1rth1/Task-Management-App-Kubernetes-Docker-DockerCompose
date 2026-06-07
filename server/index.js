@@ -6,6 +6,10 @@ import morgan from "morgan";
 import  { dbConnection } from "./utils/index.js";
 import { errorHandler, routeNotFound } from "./middlewares/errorMiddlewares.js";
 import routes from "./routes/index.js"
+import client from "prom-client";
+
+// default metrics (CPU, memory, etc.)
+client.collectDefaultMetrics();
 dotenv.config();
 
 dbConnection();
@@ -33,7 +37,21 @@ app.use(morgan("dev")) // morgan is a logging middleware for Node.js. The "dev" 
 // It logs HTTP requests to the console, helping with debugging and monitoring.
 app.use("/api",routes); // now we specify the base route /api on which we render the routes coming from the routes/index.js
 
+// this route is for the prometheous monitoring 
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', client.register.contentType);
+  res.end(await client.register.metrics());
+});
+
+// Health check route..added for Docker health checks && Kubernetes probes
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK" });
+});
+
+// here order matter of the route we are calling so at the end this below route should be there after the all route configuration
+// other wise it shows route not found at the start if we put below two at the beginning...
 app.use(routeNotFound);
 app.use(errorHandler); // this is created by me these two function as the errorMiddleware
+
 
 app.listen(PORT, () => console.log(`Server listning on ${PORT}`));

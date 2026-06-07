@@ -1,0 +1,118 @@
+apiVersion: apps/v1                # API version for Deployment resource
+kind: Deployment                   # We are creating a Deployment (manages ReplicaSets & Pods)
+
+metadata:
+  name: frontend                   # Unique name of the Deployment inside the namespace
+  namespace: task-app
+  labels:
+    app: frontend                  # Label attached to Deployment (used for grouping/selection)
+
+spec:
+  replicas: 2                      # Desired number of Pods (ensures high availability)
+
+  
+  # Deployment Strategy
+  
+  strategy:
+    type: RollingUpdate            # Ensures zero-downtime updates
+
+    rollingUpdate:
+      maxUnavailable: 1            # At most 1 Pod can be unavailable during update
+                                  # (ensures at least 1 pod is always running)
+
+      maxSurge: 1                  # Allows creation of 1 extra Pod temporarily
+                                  # (helps spin up new version before killing old one)
+
+  
+  # Selector (VERY IMPORTANT)
+  
+  selector:
+    matchLabels:
+      app: frontend                # Must match Pod template labels exactly
+                                  # Otherwise Deployment will NOT manage the Pods
+
+  
+  # Pod Template (Blueprint for Pods)
+  
+  template:
+    metadata:
+      labels:
+        app: frontend              # Label assigned to Pods created by this Deployment
+
+    spec:
+      containers:
+        - name: frontend           # Name of the container inside the Pod
+
+          
+          # Docker Image
+          
+          image: tirth1903/cloud-based-task-management-app-frontend:latest
+          # Pre-built Docker image from Docker Hub
+          # This image already contains:
+          # - React build (static files)
+          # - Nginx serving those files
+
+          imagePullPolicy: Always
+          # Always pulls latest image from registry before starting container
+          # Useful in development
+          # In production → use "IfNotPresent" or versioned tags
+
+          
+          # Ports
+          
+          ports:
+            - containerPort: 80
+              # Port exposed by container
+              # Nginx serves React app on port 80
+
+          
+          # IMPORTANT: No Environment Variables or arguments
+          
+          # We don’t need to pass arguments or need of environment variables here because the Docker image has already been built with those values during the Docker Compose phase. 
+          # At build time, any required arguments (like API URLs or environment-specific configs) were injected into the image. 
+          # Since this same pre-built image is now being used in Kubernetes, all those configurations are already embedded within it. 
+          # Therefore, Kubernetes simply runs the image and doesn’t need to pass those arguments again.
+          # so in the docker compose file we have frontend service in that it's self during the build of the image
+          # i have passed the arguments and used that dockerfile which is there in the client folder of this project
+          # so no need to do anything here just use that built image need to use only...
+
+          
+          # Resource Management
+          
+          resources:
+            requests:
+              cpu: "100m"          # Minimum CPU required (0.1 CPU)
+              memory: "128Mi"      # Minimum memory required
+
+            limits:
+              cpu: "300m"          # Max CPU container can use
+              memory: "256Mi"      # Max memory allowed
+
+          
+          # Liveness Probe (Health Check - Is container alive?)
+          
+          livenessProbe:
+            httpGet:
+              path: /              # Endpoint to check
+              port: 80
+
+            initialDelaySeconds: 10  # Wait before starting checks (startup time)
+            periodSeconds: 10        # Check every 10 seconds
+
+            # If this probe fails repeatedly:
+            # → Kubernetes RESTARTS the container
+
+          
+          # Readiness Probe (Traffic Control - Can it serve requests?)
+          
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+
+            initialDelaySeconds: 5   # Start checking earlier than liveness
+            periodSeconds: 5         # Check more frequently
+
+            # If this probe fails:
+            # → Pod is REMOVED from Service load balancing
+            # → Traffic is NOT sent to this pod

@@ -1,0 +1,32 @@
+# Horizontal Pod Autoscaler (HPA)
+# Automatically scales the number of pods based on load
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend-hpa
+  namespace: task-app
+
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend # Monitor and scale the deployment named backend. If name mismatches → HPA won’t work.
+    # This tells HPA which Deployment it should control (backend)
+
+  minReplicas: 2
+  # Minimum number of pods that must always run
+
+  maxReplicas: 5
+  # Maximum number of pods HPA can scale up to
+
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+          # If average CPU usage across pods goes above 70%,
+          # Kubernetes will automatically increase the number of pods
+          # If CPU usage drops, it will scale down but not below minReplicas

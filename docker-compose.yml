@@ -1,0 +1,143 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+
+    # This creates a MongoDB container locally.
+    # The actual database is NOT on your system directly,
+    # it lives inside this container.
+    # The volume below ensures data persists even if the container is deleted and data is persisted over the custom volume mongodb_data
+    # /data/db this is the path where the mongodb's data always stored...
+    volumes:
+      - mongodb_data:/data/db
+
+    networks:
+      - app-network
+
+    restart: unless-stopped
+
+    # Healthcheck ensures MongoDB is actually ready before other services use it.
+    # "mongosh --eval db.adminCommand('ping')" basically checks if DB is alive.
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    # Important concept:
+    # Inside Docker Compose, each service name acts like a DNS hostname.
+    # So "mongodb" becomes reachable as a host.
+    #
+    # That’s why backend uses:
+    # update the backend .env file...
+    # mongodb://mongodb:27017/taskapp
+    #
+    # Breakdown:
+    # mongodb://        → protocol
+    # mongodb           → service name (container hostname)
+    # 27017             → default MongoDB port
+    # /taskapp          → database name (auto-created on first use) this will create the internal database
+
+
+  backend:
+    build:
+      context: ./server
+    container_name: backend
+
+    # Loads all environment variables from .env file which is there in the server folder
+    # (like PORT, JWT_SECRET, MONGODB_URI, etc.)
+    env_file:
+      - ./server/.env
+
+    # This block is OPTIONAL and only used if you want to override .env values
+    # it can already read the environment variables from the server's .env...but below this code is used for overrider those
+    # environment variable if we want to. 
+    # environment:
+    #   - PORT=5000
+    #   - NODE_ENV=production
+    #   - MONGODB_URI=mongodb://mongodb:27017/taskapp
+
+    depends_on:
+      mongodb:
+        # "service_healthy" is a built-in Docker feature.
+        # It ensures backend starts ONLY AFTER MongoDB passes its healthcheck.
+        #
+        # Without this, backend may start early and crash because DB isn't ready.
+        condition: service_healthy
+
+    networks:
+      - app-network
+
+    restart: unless-stopped
+
+    # Healthcheck for backend
+    # This hits your backend endpoint to confirm it's running properly.
+    # Make sure you actually have a /health route in your backend.
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    # Important:
+    # No "ports" means backend is NOT exposed to browser directly.
+    # It is only accessible internally (via frontend/nginx).
+    # This is more secure and production-style.
+
+
+  frontend:
+  # here in frontend there is no need to update the .env of the frontend folder of the project because we are already passing here as arguments...
+  # so keep as is 
+    build:
+      context: ./client 
+      # detailed explaination of this context: is there in my notes....
+      args:
+        # VITE_APP_BASE_URL: http://backend:5000 # now this base_url is not needed for the docker compose
+        # because now we have nginx and frontend only make the api call direct to this route /api/user/login and it resolves
+        # to the http://backend/api/user/login full path using the nginx rever proxy pass...
+        # so now frontend call only the /api/user/login instead of the http://localhost:5000 and that /api/.. path resolved into the backend service which 
+        # we have created inside the docker compose file
+        # ............Details explaination is there in my notes....
+        # docker compose and frontend ngninx also resolve this backend DNS name to this container...
+        VITE_APP_FIREBASE_API_KEY: AIzaSyDo-EOUpkOSVyDlUw-4lIpEePcSBkI8Bqs
+
+    container_name: frontend
+
+    # Only frontend is exposed to the outside world
+    ports:
+      - "3000:80"
+
+    depends_on:
+      - backend
+    # this won't work for the frotend environment should pass during the build time...
+    # detailed explaination is there in notes...
+    # env_file:
+    #   ./client/.env
+
+    networks:
+      - app-network
+
+    restart: unless-stopped
+
+    # Flow:
+    # Browser → localhost:3000
+    # → frontend (nginx)
+    # → /api routed to backend
+    #
+    # Nginx uses:
+    # proxy_pass http://backend:5000;
+    #
+    # "backend" works because it's the service name (internal DNS)
+
+
+volumes:
+  mongodb_data:
+  # Named volume for MongoDB
+  # Ensures data is NOT lost when container restarts or is removed
+
+
+networks:
+  app-network:
+    driver: bridge
+    # Custom bridge network allows all services
+    # to communicate using service names (mongodb, backend, frontend)

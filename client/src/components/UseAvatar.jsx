@@ -1,5 +1,6 @@
 import React from 'react'
-import { Menu, Transition } from "@headlessui/react";
+import { Menu } from "@headlessui/react";
+import Transition from "./CustomTransition.jsx"
 import { FaUser, FaUserLock } from "react-icons/fa";
 import{ Fragment, useState } from "react";
 import { IoLogOutOutline } from "react-icons/io5";

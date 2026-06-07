@@ -5,6 +5,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 const API_URI = import.meta.env.VITE_APP_BASE_URL; // Server-side endpoint URL
 // Example: "http://localhost:8800" so here our backend run at the 8800 so we make the request with this endpoints
 
+console.log("kk",API_URI);
 // Define a base query using fetchBaseQuery with the API base URL
 const baseQuery = fetchBaseQuery({ baseUrl: API_URI + "/api" }); // here we set the baseUrl as the API_URI + "/api"...which is for the backend endpoints
 

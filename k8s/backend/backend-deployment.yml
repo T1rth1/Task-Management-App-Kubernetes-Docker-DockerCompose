@@ -1,0 +1,127 @@
+apiVersion: apps/v1  # Using apps API group because Deployment belongs here
+kind: Deployment     # Deployment manages stateless application pods
+metadata:
+  name: backend
+  namespace: task-app  # Ensures isolation inside task-app namespace
+spec:
+  replicas: 2  # Running 2 pods for high availability and zero-downtime updates
+
+  # ----------------------------
+  # Rolling Update Strategy
+  # ----------------------------
+  strategy:
+    type: RollingUpdate  # Ensures gradual pod replacement (no downtime)...Ensures pods are replaced gradually, not all at once
+    rollingUpdate:
+      maxUnavailable: 1  # At most 1 pod can be down during update
+      maxSurge: 1        # At most 1 extra pod can be created during update
+
+  # Explanation:
+  # replicas = 2
+  # maxSurge = 1 → Kubernetes can temporarily run 3 pods
+  # maxUnavailable = 1 → At least 1 pod always remains running
+  #
+  # This ensures near zero-downtime deployments even during updates.
+
+  selector:
+    matchLabels:
+      app: backend  # Deployment manages pods with this label
+
+  template:
+    metadata:
+      labels:
+        app: backend  # Must match selector or Deployment will fail
+
+    spec:
+      containers:
+        - name: backend
+
+          # Docker image pushed to Docker Hub
+          image: tirth1903/cloud-based-task-management-app-backend:latest
+          # here what ever image i used is the same image which i have created during the docker compose and i just 
+          # tagged that image and used here...so all the configuration which i have done for the backend service of the docker compose that same
+          # image i have used here...same goes for the frontend 
+
+          ports:
+            - containerPort: 5000  # Backend service exposed inside container
+
+          # ----------------------------
+          # Environment Variables
+          # ----------------------------
+          envFrom:
+            - configMapRef:
+                name: backend-config  # Loads non-sensitive config values
+            - secretRef:
+                name: backend-secret  # Loads sensitive values (JWT, DB creds)
+
+          # If you prefer explicit control instead of envFrom, use env:
+          # what i have used in the chat-app...
+          # env:
+          #   - name: MONGO_URI
+          #     valueFrom:
+          #       configMapKeyRef:
+          #         name: backend-config
+          #         key: MONGO_URI
+          #
+          #   - name: JWT_SECRET
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: backend-secret
+          #         key: JWT_SECRET
+
+          # ----------------------------
+          # LIVENESS PROBE
+          # ----------------------------
+          livenessProbe:
+            httpGet:
+              path: /health  # Kubernetes checks if container is alive
+              port: 5000
+
+            initialDelaySeconds: 10
+            # Wait before first health check to avoid startup failure
+
+            periodSeconds: 10
+            # Check every 10 seconds
+
+            timeoutSeconds: 5
+            # Max time to wait for response
+
+            failureThreshold: 3
+            # If 3 consecutive failures → restart container automatically
+
+            successThreshold: 1
+            # Single success is enough to mark healthy
+
+          # ----------------------------
+          # READINESS PROBE
+          # ----------------------------
+          readinessProbe:
+            httpGet:
+              path: /health  # Checks if pod is ready to serve traffic
+              port: 5000
+
+            initialDelaySeconds: 10
+            # Wait for app initialization before marking ready
+
+            periodSeconds: 5
+            # Frequent readiness checks for faster traffic routing
+
+            timeoutSeconds: 5
+            # Response timeout window
+
+            failureThreshold: 3
+            # After 3 failures → pod removed from service endpoints
+            # (NO restart happens here)
+
+          # ----------------------------
+          # RESOURCE MANAGEMENT
+          # ----------------------------
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "200m"
+              # Minimum guaranteed resources for scheduling
+
+            limits:
+              memory: "256Mi"
+              cpu: "400m"
+              # Maximum allowed resource usage

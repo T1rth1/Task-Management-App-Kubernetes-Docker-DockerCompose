@@ -1,0 +1,133 @@
+apiVersion: v1  # Core Kubernetes API group used for basic resources like Service
+kind: Service   # Service provides stable networking and load balancing for pods
+
+metadata:
+  name: backend
+  namespace: task-app  # Keeps service isolated inside task-app namespace
+  labels:
+    app: backend
+    # -> This label is used for IDENTIFICATION and GROUPING of Kubernetes resources
+
+    # -> IMPORTANT CLARIFICATION:
+    #    This label is NOT used for traffic routing
+    #    Service → Pod communication is controlled by:
+    #       spec.selector (NOT metadata.labels)
+
+    # -> So even if you REMOVE this label:
+    #    Service will still function normally
+    #    Traffic will still reach backend pods
+
+    # 
+    # -> Then WHY do we add this label?
+    # 
+
+    # -> 1. REQUIRED for Monitoring (CRITICAL in your case)
+    #       Your ServiceMonitor uses:
+    #         selector:
+    #           matchLabels:
+    #             app: backend
+    #
+    #       Flow:
+    #         ServiceMonitor → finds Service using this label → scrapes metrics
+    #
+    #       If label is missing/mismatched:
+    #         Prometheus WON'T detect your service
+    #         Metrics will NOT be collected
+
+    # 
+
+    # -> 2. Helps in Filtering & Debugging
+    #       Example:
+    #         kubectl get svc -l app=backend
+    #
+    #       Makes it easy to locate related resources quickly
+
+    # 
+
+    # -> 3. Maintains Consistency Across Resources
+    #       Best practice is to use SAME label across:
+    #         - Deployment (Pods)
+    #         - Service
+    #         - ServiceMonitor
+    #
+    #       This creates a clean, predictable architecture
+
+    # 
+
+    # -> 4. Required by Ecosystem Tools
+    #       Many tools depend on labels:
+    #         - Prometheus / ServiceMonitor
+    #         - Helm charts
+    #         - ArgoCD
+    #         - CI/CD pipelines
+    #
+    #       Without labels, automation becomes harder
+
+    # 
+
+    # -> BEST PRACTICE:
+    #       Even though OPTIONAL for basic functionality,
+    #       ALWAYS include labels in real-world projects
+
+    # 
+
+    # -> FINAL SUMMARY:
+    #       metadata.labels = OPTIONAL for traffic
+    #       BUT ESSENTIAL for:
+    #         Monitoring
+    #         Observability
+    #         Debugging
+    #         Scalability
+spec:
+  type: ClusterIP  
+# ClusterIP = default Kubernetes Service type
+# It gives a stable internal IP and DNS name to access pods inside the cluster
+# Used only for internal communication between services (not exposed outside Kubernetes)
+#
+# It automatically load-balances traffic across all matching backend pods
+# Even if pods restart or their IP changes, the Service name (backend) always works
+#
+# Access format inside cluster:
+# http://backend:5000
+#
+# ClusterIP is stable and does NOT change during normal usage
+# It stays fixed for the lifetime of the Service
+#
+# It only changes if:
+# - You delete and recreate the Service
+# - You delete the namespace
+# - You reset or recreate the Kubernetes cluster
+#
+# Key idea:
+# Pods are temporary (changing IPs), but ClusterIP gives a permanent internal entry point
+
+  selector:
+    app: backend
+    # This is VERY important:
+    # Service connects to pods that have label:
+    # app: backend
+    #
+    # So traffic is automatically routed to all matching backend pods
+
+  ports:
+    - name: http
+      # -> Name of the port (VERY IMPORTANT)
+      # -> This is NOT just a label — it's used by other resources
+      # -> Your ServiceMonitor refers to this name:
+      #    port: http
+      # -> If this name doesn't match, Prometheus WON’T scrape metrics
+      port: 5000
+      # This is the SERVICE port (internal cluster port)
+      # Other services/pods call this port
+      # -> Port exposed by the Kubernetes Service  
+      # -> This is the port other services/pods use to communicate
+      # -> Example: backend service will be accessible on port 5000
+
+      targetPort: 5000
+      # This is the container port inside the pod
+      # Your Node.js backend is actually running on port 5000 inside container
+      # -> This is the port inside the container (pod)
+      # -> If not specified, Kubernetes assumes targetPort = port 
+
+      protocol: TCP
+      # Default protocol used for web APIs

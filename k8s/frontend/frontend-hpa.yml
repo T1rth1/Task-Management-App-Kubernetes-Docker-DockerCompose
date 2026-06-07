@@ -1,0 +1,22 @@
+apiVersion: autoscaling/v2        # API version for HPA
+kind: HorizontalPodAutoscaler     # Resource type
+
+metadata:
+  name: frontend-hpa              # HPA name
+  namespace: task-app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1           # Target API version
+    kind: Deployment              # Target resource type
+    name: frontend                # Deployment to scale which have name frontend..
+
+  minReplicas: 2                  # Minimum number of pods
+  maxReplicas: 5                  # Maximum number of pods
+
+  metrics:
+    - type: Resource              # Using resource-based scaling
+      resource:
+        name: cpu                 # Metric: CPU usage
+        target:
+          type: Utilization       # Based on percentage usage
+          averageUtilization: 60  # Target CPU usage = 60%

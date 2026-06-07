@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: task-app
+data:
+  PORT: "5000"
+  MONGODB_URI: "mongodb://mongo:27017/taskapp"
+
+# kind: ConfigMap
+# -> Defines this object as a ConfigMap
+# -> ConfigMap is used to store NON-SENSITIVE configuration data
+# -> Example: ports, URLs, environment variables
+
+# metadata:
+# -> Basic identification info for this ConfigMap
+
+#   name: backend-config
+#   -> Name of the ConfigMap
+#   -> Your backend pods will reference this name to load config
+
+#   namespace: task-app
+#   -> This ConfigMap belongs to "task-app" namespace
+#   -> Only pods in this namespace (or explicitly referenced) can use it
+
+# data:
+# -> This is where actual key-value configuration lives
+# -> Everything here is exposed as environment variables or files in pods
+
+#   PORT: "5000"
+#   -> Environment variable for backend server port
+#   -> Your backend will listen on port 5000
+
+#   MONGO_URL: "mongodb://mongo:27017/taskdb"
+#   -> Connection string for MongoDB
+
+#   BREAKDOWN:
+#   mongodb://mongo:27017/taskdb
+#
+#   mongo
+#   -> This is NOT a real hostname machine
+#   -> This is Kubernetes Service name
+#   -> Kubernetes DNS resolves it internally
+#
+#   27017
+#   -> Default MongoDB port
+#
+#   taskdb
+#   -> Database name inside MongoDB
+#
+#   FLOW:
+#   Backend Pod → mongo Service → MongoDB StatefulSet Pod

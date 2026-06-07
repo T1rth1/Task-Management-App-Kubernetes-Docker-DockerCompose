@@ -13,7 +13,8 @@ import { setOpenSidebar } from './redux/slices/authSlice'
 import { Fragment, useRef } from 'react'
 import { IoMdClose } from "react-icons/io";
 import clsx from 'clsx'
-import { Transition } from '@headlessui/react'
+// import { Transition } from '@headlessui/react'
+import Transition from "./components/CustomTransition.jsx"
 
 function Layout (){
   const { user } = useSelector((state) => state.auth);

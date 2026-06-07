@@ -1,4 +1,5 @@
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog } from "@headlessui/react";
+import Transition from "./CustomTransition.jsx"
 import { Fragment, useRef } from "react";
 
 const ModalWrapper = ({ open, setOpen, children }) => {
@@ -17,6 +18,7 @@ const ModalWrapper = ({ open, setOpen, children }) => {
       >
         <Transition.Child
           as={Fragment}
+          // as="div"
           enter='ease-out duration-300'
           enterFrom='opacity-0'
           enterTo='opacity-100'
@@ -31,6 +33,7 @@ const ModalWrapper = ({ open, setOpen, children }) => {
           <div className='flex h-full items-center justify-center p-4 text-center sm:p-0'>
             <Transition.Child
               as={Fragment}
+              // as="div"
               enter='ease-out duration-300'
               enterFrom='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
               enterTo='opacity-100 translate-y-0 sm:scale-100'

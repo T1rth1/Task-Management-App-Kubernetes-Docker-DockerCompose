@@ -1,4 +1,5 @@
-import { Listbox, Transition } from "@headlessui/react";
+import { Listbox } from "@headlessui/react";
+import Transition from "../CustomTransition.jsx";
 import { Fragment, useEffect, useState } from "react";
 import { BsChevronExpand } from "react-icons/bs";
 import { summary } from "../../assets/data";

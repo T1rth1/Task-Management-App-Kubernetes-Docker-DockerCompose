@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+  namespace: task-app
+spec:
+  clusterIP: None
+  selector:
+    app: mongo
+  ports:
+    - port: 27017
+      targetPort: 27017
+
+# apiVersion: v1
+# -> This tells Kubernetes which API version to use.
+# -> "v1" is the stable core API group (used for basic resources like Service, Pod, ConfigMap, etc.)
+
+# kind: Service
+# -> This defines the type of Kubernetes object.
+# -> Here it's a Service, which is used to expose your application (MongoDB in this case).
+
+# metadata:
+# -> Metadata section contains identifying information about this object.
+
+#   name: mongo
+#   -> This is the name of the Service.
+#   -> Other pods will use this name (mongo) to connect to MongoDB.
+
+#   namespace: task-app
+#   -> This means this Service lives inside the "task-app" namespace.
+#   -> Namespaces help isolate resources (like separate virtual clusters inside Kubernetes).
+
+# spec:
+# -> Specification of what this Service should do.
+
+#   clusterIP: None
+#   -> VERY IMPORTANT (this makes it a "Headless Service")
+#   -> Normally Kubernetes assigns a virtual IP to Services.
+#   -> But here we set it to None, meaning:
+#        - No single virtual IP is created
+#        - Instead, Kubernetes returns Pod IPs directly
+#
+#   WHY use this?
+#   -> MongoDB often runs as a StatefulSet
+#   -> StatefulSet needs stable network identity per pod
+#   -> Headless Service allows direct Pod DNS resolution like:
+#        mongo-0.mongo.task-app.svc.cluster.local
+#
+#   So instead of load balancing, it gives direct access to each Mongo pod.
+
+#   selector:
+#     app: mongo
+#   -> This is SUPER IMPORTANT.
+#
+#   WHAT IS A SELECTOR?
+#   -> It tells the Service which Pods belong to it.
+#
+#   HOW IT WORKS:
+#   - Kubernetes looks for Pods with label:
+#        app: mongo
+#
+#   Example Pod:
+#     metadata:
+#       labels:
+#         app: mongo   <-- matches selector
+#
+#   So this Service automatically "connects" to all Pods that match this label.
+#
+#   If selector didn't match anything → Service would have no endpoints.
+
+#   ports:
+#     - port: 27017
+#       targetPort: 27017
+#
+#   -> This defines how traffic flows.
+#
+#   port: 27017
+#   -> The port that OTHER services inside cluster will use to connect.
+#   -> Example: mongo:27017
+#
+#   targetPort: 27017
+#   -> The actual port inside the Pod/container where MongoDB is running.
+#
+#   FLOW:
+#   Client Pod → mongo Service (27017) → MongoDB container (27017)
